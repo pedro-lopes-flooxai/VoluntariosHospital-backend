@@ -8,9 +8,19 @@ const taskSchema = new mongoose.Schema(
     hours: { type: String, required: true },
     requirements: { type: String, required: true },
     daysLeft: { type: Number, required: true },
-    score: { type: String, required: true },
-    photo: { type: String }, 
+    score: { type: Number, required: true },
+    photo: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    candidates: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        status: {
+          type: String,
+          enum: ['pending', 'approved', 'rejected'],
+          default: 'pending',
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
