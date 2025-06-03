@@ -29,12 +29,19 @@ router.get('/', verifyToken, isAdmin, async (req, res) => {
 });
 
 router.put('/:id', verifyToken, isAdmin, async (req, res) => {
-  const { name, email, role } = req.body;
+  const { name, email, role, password } = req.body;
 
   try {
+    const updateData = { name, email, role };
+
+    if (password && password.trim() !== '') {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { name, email, role },
+      updateData,
       { new: true }
     ).select('-password');
 
@@ -52,6 +59,17 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
     if (!deletedUser) return res.status(404).json({ message: 'Usuário não encontrado' });
 
     res.json({ message: 'Usuário deletado com sucesso' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/me', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('-password');
+    if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+
+    res.json(user);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
