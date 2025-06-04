@@ -42,15 +42,18 @@ exports.getAllTasks = async (req, res) => {
 
 exports.getTaskById = async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id).lean();
+    const task = await Task.findById(req.params.id)
+      .populate('candidates.user') 
+      .lean();
+
     if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
+
     res.json(task);
   } catch (err) {
     console.error('Erro ao buscar tarefa por ID:', err);
     res.status(500).json({ message: 'Erro ao buscar tarefa' });
   }
 };
-
 exports.applyToTask = async (req, res) => {
   try {
     const userId = req.userId;
@@ -104,7 +107,7 @@ exports.updateCandidateStatus = async (req, res) => {
     const task = await Task.findById(taskId);
     if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
 
-    const candidate = task.candidates.id(candidateId);
+    const candidate = task.candidates.find(c => String(c.user) === String(candidateId));
     if (!candidate) return res.status(404).json({ message: 'Candidato não encontrado' });
 
     candidate.status = status;
