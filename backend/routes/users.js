@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const userController = require('../controllers/userController');
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -64,15 +65,8 @@ router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
-router.get('/me', verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select('-password');
-    if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+router.get('/me', verifyToken, userController.getMeWithScore);
 
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.get('/ranking', userController.getRanking);
 
 module.exports = router;
