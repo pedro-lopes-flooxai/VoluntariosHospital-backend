@@ -69,4 +69,6 @@ router.get('/me', verifyToken, userController.getMeWithScore);
 
 router.get('/ranking', userController.getRanking);
 
+router.get('/total-score', userController.getTotalScore);
+
 module.exports = router;
