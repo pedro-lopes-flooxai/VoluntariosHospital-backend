@@ -64,3 +64,26 @@ exports.getRanking = async (req, res) => {
     res.status(500).json({ message: 'Erro ao buscar ranking' });
   }
 };
+
+exports.getTotalScore = async (req, res) => {
+  try {
+    const users = await User.find({ role: { $ne: 'admin' } }).lean();
+
+    let totalScore = 0;
+
+    for (const user of users) {
+      const approvedTasks = await Task.find({
+        candidates: {
+          $elemMatch: { user: user._id, status: 'approved' }
+        }
+      }).lean();
+
+      totalScore += approvedTasks.reduce((acc, task) => acc + (task.score || 0), 0);
+    }
+
+    res.json({ totalScore });
+  } catch (err) {
+    console.error('Erro ao calcular pontuação total:', err);
+    res.status(500).json({ message: 'Erro ao calcular pontuação total' });
+  }
+};
