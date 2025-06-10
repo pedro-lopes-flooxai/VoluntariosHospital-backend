@@ -12,12 +12,11 @@ router.get('/applied', verifyToken, async (req, res) => {
     }
 
     const tasks = await Task.find({
-      status: 'active',
-      candidates: {
-        $elemMatch: {
-          user: userId
-        }
-      }
+      $or: [
+        { status: 'active' },
+        { status: 'inactive', candidates: { $elemMatch: { user: userId, status: 'approved' } } }
+      ],
+      candidates: { $elemMatch: { user: userId } }
     }).lean();
 
     const filtered = tasks.map(task => {
