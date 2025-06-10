@@ -12,6 +12,7 @@ router.get('/applied', verifyToken, async (req, res) => {
     }
 
     const tasks = await Task.find({
+      status: 'active',
       candidates: {
         $elemMatch: {
           user: userId

@@ -19,6 +19,7 @@ exports.createTask = async (req, res) => {
       score,
       photo,
       createdBy,
+      status: 'active',
       candidates: [],
     });
 
@@ -32,7 +33,7 @@ exports.createTask = async (req, res) => {
 
 exports.getAllTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().lean();
+    const tasks = await Task.find({ status: 'active' }).lean();
     res.json(tasks);
   } catch (err) {
     console.error('Erro ao buscar tarefas:', err);
@@ -43,7 +44,7 @@ exports.getAllTasks = async (req, res) => {
 exports.getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
-      .populate('candidates.user') 
+      .populate('candidates.user')
       .lean();
 
     if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
@@ -59,18 +60,13 @@ exports.applyToTask = async (req, res) => {
     const userId = req.userId;
     const taskId = req.params.id;
 
-    console.log(`applyToTask - userId: ${userId}, taskId: ${taskId}`);
-
     const task = await Task.findById(taskId);
     if (!task) {
-      console.log('Tarefa não encontrada');
       return res.status(404).json({ message: 'Tarefa não encontrada' });
     }
 
-    const userIdStr = userId.toString();
-    const alreadyApplied = task.candidates.some(c => c.user.toString() === userIdStr);
+    const alreadyApplied = task.candidates.some(c => c.user.toString() === userId.toString());
     if (alreadyApplied) {
-      console.log('Usuário já se candidatou a essa tarefa');
       return res.status(400).json({ message: 'Você já se candidatou a essa tarefa.' });
     }
 
@@ -84,28 +80,27 @@ exports.applyToTask = async (req, res) => {
   }
 };
 
-
 exports.updateCandidateStatus = async (req, res) => {
   try {
     const { taskId, candidateId } = req.params;
     const { status } = req.body;
 
-    if (!['pending', 'approved', 'rejected'].includes(status)) {
-      return res.status(400).json({ message: 'Status inválido' });
-    }
-
     const task = await Task.findById(taskId);
     if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
 
-    const candidate = task.candidates.find(c => String(c.user) === String(candidateId));
+    const candidate = task.candidates.id(candidateId);
     if (!candidate) return res.status(404).json({ message: 'Candidato não encontrado' });
 
     candidate.status = status;
+    if (status === 'approved') {
+      task.status = 'inactive';
+    }
+
     await task.save();
 
-    res.json({ message: 'Status atualizado', candidate });
+    res.json({ message: 'Status do candidato atualizado', task });
   } catch (err) {
     console.error('Erro ao atualizar status do candidato:', err);
-    res.status(500).json({ message: 'Erro interno ao atualizar status' });
+    res.status(500).json({ message: 'Erro interno do servidor' });
   }
 };

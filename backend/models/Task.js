@@ -10,6 +10,11 @@ const taskSchema = new mongoose.Schema(
     daysLeft: { type: Number, required: true },
     score: { type: Number, required: true },
     photo: { type: String },
+    status: {
+      type: String,
+      enum: ['active', 'inactive'],
+      default: 'active',
+    },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     candidates: [
       {
