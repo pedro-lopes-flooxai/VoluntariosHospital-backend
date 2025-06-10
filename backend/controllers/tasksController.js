@@ -67,16 +67,6 @@ exports.applyToTask = async (req, res) => {
       return res.status(404).json({ message: 'Tarefa não encontrada' });
     }
 
-    const hasApproved = await Task.findOne({
-      'candidates.user': userId,
-      'candidates.status': 'approved'
-    });
-
-    if (hasApproved) {
-      console.log('Usuário já tem candidatura aprovada ativa');
-      return res.status(400).json({ message: 'Você já tem uma candidatura aprovada ativa.' });
-    }
-
     const userIdStr = userId.toString();
     const alreadyApplied = task.candidates.some(c => c.user.toString() === userIdStr);
     if (alreadyApplied) {
