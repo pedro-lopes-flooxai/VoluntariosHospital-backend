@@ -104,3 +104,27 @@ exports.updateCandidateStatus = async (req, res) => {
     res.status(500).json({ message: 'Erro interno do servidor' });
   }
 };
+
+exports.unapplyFromTask = async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const userId = req.userId;
+
+    const task = await Task.findById(taskId);
+    if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
+
+    const initialLength = task.candidates.length;
+    task.candidates = task.candidates.filter(c => c.user.toString() !== userId);
+    
+    if (task.candidates.length === initialLength) {
+      return res.status(400).json({ message: 'Você não está cadastrado nesta tarefa' });
+    }
+
+    await task.save();
+    res.json({ message: 'Candidatura cancelada com sucesso' });
+  } catch (err) {
+    console.error('Erro ao cancelar candidatura:', err);
+    res.status(500).json({ message: 'Erro ao cancelar candidatura' });
+  }
+}
+

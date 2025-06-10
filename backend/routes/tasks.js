@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task'); 
 const taskController = require('../controllers/tasksController');
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
 
 router.get('/applied', verifyToken, async (req, res) => {
   try {
@@ -39,10 +39,11 @@ router.get('/applied', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/', verifyToken, taskController.createTask);
+router.post('/', verifyToken, isAdmin, taskController.createTask);
 router.get('/', taskController.getAllTasks);
 router.get('/:id', taskController.getTaskById);
 router.post('/:id/apply', verifyToken, taskController.applyToTask);
-router.patch('/:taskId/candidates/:candidateId', verifyToken, taskController.updateCandidateStatus);
+router.patch('/:taskId/candidates/:candidateId', verifyToken, isAdmin, taskController.updateCandidateStatus);
+router.delete('/:id/unapply', verifyToken, taskController.unapplyFromTask);
 
 module.exports = router;
