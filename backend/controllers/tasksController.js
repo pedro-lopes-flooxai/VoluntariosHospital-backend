@@ -4,8 +4,11 @@ exports.createTask = async (req, res) => {
   try {
     const { title, patient, type, hours, requirements, daysLeft, score, photo } = req.body;
     const createdBy = req.userId;
-
-    if (!title || !patient || !type || !hours || !requirements || daysLeft == null || score == null) {
+    if (
+      !title || !patient || !type || !hours || !requirements ||
+      daysLeft === undefined || daysLeft === null ||
+      score === undefined || score === null
+    ) {
       return res.status(400).json({ message: 'Campos obrigatórios faltando.' });
     }
 
@@ -24,20 +27,22 @@ exports.createTask = async (req, res) => {
     });
 
     await task.save();
-    res.status(201).json(task);
+    return res.status(201).json(task);
+
   } catch (err) {
     console.error('Erro ao criar tarefa:', err);
-    res.status(500).json({ message: 'Erro interno ao criar tarefa' });
+    return res.status(500).json({ message: 'Erro interno ao criar tarefa' });
   }
 };
 
 exports.getAllTasks = async (req, res) => {
   try {
     const tasks = await Task.find({ status: 'active' }).lean();
-    res.json(tasks);
+    return res.json(tasks);
+
   } catch (err) {
     console.error('Erro ao buscar tarefas:', err);
-    res.status(500).json({ message: 'Erro ao buscar tarefas' });
+    return res.status(500).json({ message: 'Erro ao buscar tarefas' });
   }
 };
 
@@ -49,10 +54,10 @@ exports.getTaskById = async (req, res) => {
 
     if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
 
-    res.json(task);
+    return res.json(task);
   } catch (err) {
     console.error('Erro ao buscar tarefa por ID:', err);
-    res.status(500).json({ message: 'Erro ao buscar tarefa' });
+    return res.status(500).json({ message: 'Erro ao buscar tarefa' });
   }
 };
 exports.applyToTask = async (req, res) => {
@@ -65,18 +70,24 @@ exports.applyToTask = async (req, res) => {
       return res.status(404).json({ message: 'Tarefa não encontrada' });
     }
 
-    const alreadyApplied = task.candidates.some(c => c.user.toString() === userId.toString());
-    if (alreadyApplied) {
+    const existingCandidate = task.candidates.find(c => c.user.toString() === userId.toString());
+
+    if (existingCandidate) {
+      if (existingCandidate.status === 'rejected') {
+        return res.status(400).json({
+          message: 'Sua candidatura foi rejeitada. Você não pode se candidatar novamente.'
+        });
+      }
       return res.status(400).json({ message: 'Você já se candidatou a essa tarefa.' });
     }
 
-    task.candidates.push({ user: userId });
+    task.candidates.push({ user: userId, status: 'pending' });
     await task.save();
 
-    res.status(200).json({ message: 'Candidatura enviada com sucesso' });
+    return res.status(200).json({ message: 'Candidatura enviada com sucesso' });
   } catch (err) {
     console.error('Erro ao candidatar-se na tarefa:', err);
-    res.status(500).json({ message: 'Erro interno ao se candidatar' });
+    return res.status(500).json({ message: 'Erro interno ao se candidatar' });
   }
 };
 
@@ -98,10 +109,10 @@ exports.updateCandidateStatus = async (req, res) => {
 
     await task.save();
 
-    res.json({ message: 'Status do candidato atualizado', task });
+    return res.json({ message: 'Status do candidato atualizado', task });
   } catch (err) {
     console.error('Erro ao atualizar status do candidato:', err);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    return res.status(500).json({ message: 'Erro interno do servidor' });
   }
 };
 
@@ -113,18 +124,24 @@ exports.unapplyFromTask = async (req, res) => {
     const task = await Task.findById(taskId);
     if (!task) return res.status(404).json({ message: 'Tarefa não encontrada' });
 
-    const initialLength = task.candidates.length;
-    task.candidates = task.candidates.filter(c => c.user.toString() !== userId);
-    
-    if (task.candidates.length === initialLength) {
+    const candidate = task.candidates.find(c => c.user.toString() === userId.toString());
+
+    if (!candidate) {
       return res.status(400).json({ message: 'Você não está cadastrado nesta tarefa' });
     }
 
+    if (candidate.status === 'rejected') {
+      return res.status(400).json({ message: 'Candidatura rejeitada. Cancelamento não permitido.' });
+    }
+    if (candidate.status === 'approved') {
+      return res.status(400).json({ message: 'Você foi aprovado nesta tarefa. Cancelamento não permitido.' });
+    }
+    task.candidates = task.candidates.filter(c => c.user.toString() !== userId.toString());
     await task.save();
-    res.json({ message: 'Candidatura cancelada com sucesso' });
+
+    return res.json({ message: 'Candidatura cancelada com sucesso', applicationStatus: null });
   } catch (err) {
     console.error('Erro ao cancelar candidatura:', err);
-    res.status(500).json({ message: 'Erro ao cancelar candidatura' });
+    return res.status(500).json({ message: 'Erro ao cancelar candidatura' });
   }
-}
-
+};
