@@ -78,7 +78,6 @@ exports.applyToTask = async (req, res) => {
           message: 'Sua candidatura foi rejeitada. Você não pode se candidatar novamente.'
         });
       }
-      return res.status(400).json({ message: 'Você já se candidatou a essa tarefa.' });
     }
 
     task.candidates.push({ user: userId, status: 'pending' });
