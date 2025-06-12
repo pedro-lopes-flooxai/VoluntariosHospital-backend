@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const userController = require('../controllers/userController');
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
@@ -19,6 +20,38 @@ router.post('/register', verifyToken, isAdmin, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+router.post('/register-public', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  try {
+    const role = 'user';
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email já cadastrado' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ name, email, password: hashedPassword, role });
+    await newUser.save();
+
+    const token = jwt.sign({ id: newUser._id, role }, process.env.JWT_SECRET || 'voluntarios_hospital', { expiresIn: '1d' });
+
+    res.status(201).json({
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 router.get('/', verifyToken, isAdmin, async (req, res) => {
   try {
